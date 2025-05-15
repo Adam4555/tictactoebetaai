@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tic Tac Toe AI with Winning Line Animation</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin: 20px;
+  }
+  #board {
+    display: grid;
+    grid-template-columns: repeat(3, 100px);
+    grid-template-rows: repeat(3, 100px);
+    gap: 5px;
+    justify-content: center;
+    margin-bottom: 20px;
+    position: relative;
+  }
+  .cell {
+    background: #eee;
+    font-size: 60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+  }
+  .cell.disabled {
+    cursor: default;
+  }
+  #message {
+    font-size: 24px;
+    margin-bottom: 10px;
+  }
+  #playAgain {
+    padding: 10px 20px;
+    font-size: 18px;
+    display: none;
+    cursor: pointer;
+  }
+  /* Line styles */
+  .line {
+    position: absolute;
+    background-color: red;
+    transition: all 0.5s ease;
+    opacity: 0;
+  }
+  .line.show {
+    opacity: 1;
+  }
+  /* horizontal lines */
+  .line.horizontal {
+    height: 4px;
+    width: 300px;
+  }
+  .line.horizontal.row0 { top: 50px; left: 0; }
+  .line.horizontal.row1 { top: 155px; left: 0; }
+  .line.horizontal.row2 { top: 260px; left: 0; }
+  /* vertical lines */
+  .line.vertical {
+    width: 4px;
+    height: 300px;
+  }
+  .line.vertical.col0 { top: 0; left: 50px; }
+  .line.vertical.col1 { top: 0; left: 155px; }
+  .line.vertical.col2 { top: 0; left: 260px; }
+  /* diagonal lines */
+  .line.diagonal1 {
+    width: 4px;
+    height: 424px;
+    top: -62px;
+    left: 150px;
+    transform: rotate(45deg);
+    transform-origin: center;
+  }
+  .line.diagonal2 {
+    width: 4px;
+    height: 424px;
+    top: -62px;
+    left: 150px;
+    transform: rotate(-45deg);
+    transform-origin: center;
+  }
+</style>
+</head>
+<body>
+<h1>Tic Tac Toe AI with Winning Line Animation</h1>
+<div id="board">
+  <div class="cell" data-index="0"></div>
+  <div class="cell" data-index="1"></div>
+  <div class="cell" data-index="2"></div>
+  <div class="cell" data-index="3"></div>
+  <div class="cell" data-index="4"></div>
+  <div class="cell" data-index="5"></div>
+  <div class="cell" data-index="6"></div>
+  <div class="cell" data-index="7"></div>
+  <div class="cell" data-index="8"></div>
+  <div id="line" class="line"></div>
+</div>
+<div id="message"></div>
+<button id="playAgain">Play Again</button>
+
+<script>
+  const board = Array(9).fill(null);
+  const cells = document.querySelectorAll('.cell');
+  const message = document.getElementById('message');
+  const playAgainBtn = document.getElementById('playAgain');
+  const line = document.getElementById('line');
+
+  const lines = [
+    [0,1,2], [3,4,5], [6,7,8], // rows
+    [0,3,6], [1,4,7], [2,5,8], // columns
+    [0,4,8], [2,4,6]           // diagonals
+  ];
+
+  let currentPlayer = 'X';
+  let gameOver = false;
+
+  function drawLine(type, pos) {
+    line.className = 'line ' + type + ' show ' + pos;
+  }
+
+  function checkWin(boardState = board) {
+    for (const [i1, i2, i3] of lines) {
+      if (boardState[i1] && boardState[i1] === boardState[i2] && boardState[i2] === boardState[i3]) {
+        return [i1, i2, i3];
+      }
+    }
+    return null;
+  }
+
+  function getLineTypeAndPos(winIndices) {
+    const [a,b,c] = winIndices;
+    if (a === 0 && b === 1 && c === 2) return ['horizontal', 'row0'];
+    if (a === 3 && b === 4 && c === 5) return ['horizontal', 'row1'];
+    if (a === 6 && b === 7 && c === 8) return ['horizontal', 'row2'];
+    if (a === 0 && b === 3 && c === 6) return ['vertical', 'col0'];
+    if (a === 1 && b === 4 && c === 7) return ['vertical', 'col1'];
+    if (a === 2 && b === 5 && c === 8) return ['vertical', 'col2'];
+    if (a === 0 && b === 4 && c === 8) return ['diagonal1', ''];
+    if (a === 2 && b === 4 && c === 6) return ['diagonal2', ''];
+    return ['', ''];
+  }
+
+  function handleClick(e) {
+    const idx = e.target.getAttribute('data-index');
+    if (gameOver || board[idx]) return;
+
+    board[idx] = currentPlayer;
+    e.target.textContent = currentPlayer;
+
+    let winIndices = checkWin();
+    if (winIndices) {
+      const [type, pos] = getLineTypeAndPos(winIndices);
+      drawLine(type, pos);
+      message.textContent = currentPlayer + ' Wins!';
+      gameOver = true;
+      playAgainBtn.style.display = 'inline-block';
+      disableBoard();
+      return;
+    }
+
+    if (board.every(cell => cell !== null)) {
+      message.textContent = 'Draw!';
+      gameOver = true;
+      playAgainBtn.style.display = 'inline-block';
+      return;
+    }
+
+    currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+
+    if (currentPlayer === 'O') {
+      botMove();
+    }
+  }
+
+  function disableBoard() {
+    cells.forEach(cell => cell.classList.add('disabled'));
+  }
+
+  function enableBoard() {
+    cells.forEach(cell => cell.classList.remove('disabled'));
+  }
+
+  function botMove() {
+    let bestScore = -Infinity;
+    let move;
+    for (let i=0; i<9; i++) {
+      if (!board[i]) {
+        board[i] = 'O';
+        let score = minimax(board, 0, false);
+        board[i] = null;
+        if (score > bestScore) {
+          bestScore = score;
+          move = i;
+        }
+      }
+    }
+    board[move] = 'O';
+    cells[move].textContent = 'O';
+
+    let winIndices = checkWin();
+    if (winIndices) {
+      const [type, pos] = getLineTypeAndPos(winIndices);
+      drawLine(type, pos);
+      message.textContent = 'O Wins!';
+      gameOver = true;
+      playAgainBtn.style.display = 'inline-block';
+      disableBoard();
+      return;
+    }
+
+    if (board.every(cell => cell !== null)) {
+      message.textContent = 'Draw!';
+      gameOver = true;
+      playAgainBtn.style.display = 'inline-block';
+      return;
+    }
+
+    currentPlayer = 'X';
+  }
+
+  function minimax(boardState, depth, isMaximizing) {
+    let winner = checkWin(boardState);
+    if (winner) {
+      if (boardState[winner[0]] === 'O') return 10 - depth;
+      else if (boardState[winner[0]] === 'X') return depth - 10;
+    }
+    if (boardState.every(cell => cell !== null)) return 0;
+
+    if (isMaximizing) {
+      let bestScore = -Infinity;
+      for (let i=0; i<9; i++) {
+        if (!boardState[i]) {
+          boardState[i] = 'O';
+          let score = minimax(boardState, depth+1, false);
+          boardState[i] = null;
+          bestScore = Math.max(score, bestScore);
+        }
+      }
+      return bestScore;
+    } else {
+      let bestScore = Infinity;
+      for (let i=0; i<9; i++) {
+        if (!boardState[i]) {
+          boardState[i] = 'X';
+          let score = minimax(boardState, depth+1, true);
+          boardState[i] = null;
+          bestScore = Math.min(score, bestScore);
+        }
+      }
+      return bestScore;
+    }
+  }
+
+  function resetGame() {
+    for(let i=0; i<9; i++) {
+      board[i] = null;
+      cells[i].textContent = '';
+    }
+    message.textContent = '';
+    playAgainBtn.style.display = 'none';
+    line.className = 'line';
+    gameOver = false;
+    currentPlayer = 'X';
+    enableBoard();
+  }
+
+  cells.forEach(cell => cell.addEventListener('click', handleClick));
+  playAgainBtn.addEventListener('click', resetGame);
+</script>
+</body>
+</html>

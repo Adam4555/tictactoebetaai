@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tic Tac Toe AI</title>
+
+  <!-- Metadata for Warpcast Mini App -->
+  <meta property="fc:frame" content="vNext" />
+  <meta property="og:title" content="Tic Tac Toe AI" />
+  <meta property="og:image" content="https://i.imgur.com/LRXU0a3.jpg" />
+  <meta property="og:description" content="Challenge the unbeatable AI in Tic Tac Toe!" />
+  <meta property="fc:frame:image" content="https://i.imgur.com/LRXU0a3.jpg" />
+  <meta property="fc:frame:button:1" content="Play Now" />
+  <meta property="fc:frame:post_url" content="https://tictactoebetaai.vercel.app/" />
+
+  <style>
+    body { font-family: sans-serif; text-align: center; margin-top: 50px; }
+    .board { display: grid; grid-template-columns: repeat(3, 100px); gap: 5px; justify-content: center; }
+    .cell { width: 100px; height: 100px; font-size: 2em; cursor: pointer; background: #f0f0f0; display: flex; align-items: center; justify-content: center; border-radius: 8px; }
+    #status { margin-top: 20px; font-size: 1.2em; }
+    #play-again { margin-top: 15px; padding: 8px 16px; font-size: 1em; display: none; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Tic Tac Toe AI</h1>
+  <div class="board" id="board"></div>
+  <div id="status"></div>
+  <button id="play-again" onclick="startGame()">Play Again</button>
+
+  <script>
+    let board, currentPlayer, gameOver;
+
+    function createBoard() {
+      board = ["", "", "", "", "", "", "", "", ""];
+      currentPlayer = "X";
+      gameOver = false;
+      const boardEl = document.getElementById("board");
+      boardEl.innerHTML = "";
+      board.forEach((_, idx) => {
+        const cell = document.createElement("div");
+        cell.className = "cell";
+        cell.dataset.index = idx;
+        cell.addEventListener("click", handleClick);
+        boardEl.appendChild(cell);
+      });
+      document.getElementById("status").textContent = "Your turn!";
+      document.getElementById("play-again").style.display = "none";
+    }
+
+    function handleClick(e) {
+      const idx = e.target.dataset.index;
+      if (gameOver || board[idx]) return;
+      board[idx] = currentPlayer;
+      e.target.textContent = currentPlayer;
+      if (checkWin(board, currentPlayer)) return endGame("You win!");
+      if (board.every(cell => cell)) return endGame("Draw!");
+      currentPlayer = "O";
+      setTimeout(() => {
+        const aiMove = getBestMove(board);
+        board[aiMove] = "O";
+        document.querySelector(`[data-index='${aiMove}']`).textContent = "O";
+        if (checkWin(board, "O")) return endGame("Bot wins!");
+        if (board.every(cell => cell)) return endGame("Draw!");
+        currentPlayer = "X";
+        document.getElementById("status").textContent = "Your turn!";
+      }, 500);
+    }
+
+    function getBestMove(board) {
+      let bestScore = -Infinity, move;
+      for (let i = 0; i < board.length; i++) {
+        if (board[i] === "") {
+          board[i] = "O";
+          let score = minimax(board, 0, false);
+          board[i] = "";
+          if (score > bestScore) {
+            bestScore = score;
+            move = i;
+          }
+        }
+      }
+      return move;
+    }
+
+    function minimax(board, depth, isMaximizing) {
+      if (checkWin(board, "O")) return 10 - depth;
+      if (checkWin(board, "X")) return depth - 10;
+      if (board.every(cell => cell)) return 0;
+
+      if (isMaximizing) {
+        let best = -Infinity;
+        for (let i = 0; i < board.length; i++) {
+          if (board[i] === "") {
+            board[i] = "O";
+            best = Math.max(best, minimax(board, depth + 1, false));
+            board[i] = "";
+          }
+        }
+        return best;
+      } else {
+        let best = Infinity;
+        for (let i = 0; i < board.length; i++) {
+          if (board[i] === "") {
+            board[i] = "X";
+            best = Math.min(best, minimax(board, depth + 1, true));
+            board[i] = "";
+          }
+        }
+        return best;
+      }
+    }
+
+    function checkWin(board, player) {
+      const winPatterns = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+      return winPatterns.some(pattern => pattern.every(idx => board[idx] === player));
+    }
+
+    function endGame(msg) {
+      document.getElementById("status").textContent = msg;
+      gameOver = true;
+      document.getElementById("play-again").style.display = "inline-block";
+    }
+
+    function startGame() {
+      createBoard();
+    }
+
+    startGame();
+  </script>
+</body>
+</html>
